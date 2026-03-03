@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<!-- Criado por Valter Ferreira - CGIUL -->
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DATA CITY – BOSS FIGHT</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body{
+  margin:0;
+  background:
+    linear-gradient(rgba(2,6,23,.88),rgba(2,6,23,.88)),
+    url("lisboa-pixel-bg.png");
+  background-size:cover;
+  background-position:center bottom;
+  background-attachment:fixed;
+  color:#e5e7eb;
+  font-family:'Press Start 2P', monospace;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+/* UI FIXA */
+.topbar{position:fixed;top:16px;left:16px;z-index:50}
+.logo{height:42px;filter:drop-shadow(0 0 6px rgba(56,189,248,.6))}
+
+.timer{
+  position:fixed;top:16px;left:50%;
+  transform:translateX(-50%);
+  font-size:28px;color:#38bdf8;
+  text-shadow:0 0 12px rgba(56,189,248,.8);
+}
+
+.admin-controls{
+  position:fixed;top:16px;right:16px;
+  display:flex;gap:8px
+}
+.admin-controls button{
+  padding:6px 10px;font-size:10px;
+  border-radius:8px;
+  background:#020617;
+  border:2px solid #334155;
+  color:#e5e7eb;cursor:pointer
+}
+
+/* LAYOUT */
+.container{width:1200px;max-width:95vw;padding-top:80px}
+h1{text-align:center;margin-bottom:28px}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;justify-content:center;
+  max-width:1100px;margin:0 auto
+}
+
+.boss{
+  background:rgba(2,6,23,.92);
+  border:3px solid #38bdf8;
+  border-radius:14px;
+  padding:16px;
+  text-align:center;
+  box-shadow:0 0 18px rgba(56,189,248,.25);
+  transition:.15s
+}
+
+.boss h2{
+  font-size:14px;
+  margin:8px 0;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.boss.damage{
+  animation: damageFlash .35s;
+}
+
+@keyframes damageFlash{
+  0%{box-shadow:0 0 0 rgba(239,68,68,0)}
+  50%{box-shadow:0 0 24px rgba(239,68,68,.9)}
+  100%{box-shadow:0 0 0 rgba(239,68,68,0)}
+}
+
+.boss.hit{animation:shake .25s}
+.boss.dead{filter:grayscale(1) brightness(.6)}
+.boss.final{border-color:#f59e0b;box-shadow:0 0 30px rgba(245,158,11,.6)}
+
+.icon{font-size:42px;height:48px;display:flex;align-items:center;justify-content:center}
+
+.hp{height:16px;background:#1f2937;border-radius:10px;overflow:hidden;margin:12px 0}
+.hp span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);transition:.3s}
+.hp span.damage{
+  background:linear-gradient(90deg,#ef4444,#f87171);
+}
+
+input{
+  width:100%;height:44px;
+  border-radius:10px;border:2px solid #334155;
+  background:#020617;color:#e5e7eb;
+  text-align:center;font-size:14px;margin-top:6px
+}
+
+button.attack{
+  margin-top:10px;padding:10px;width:100%;
+  border-radius:12px;border:none;
+  background:linear-gradient(180deg,#0ea5e9,#0369a1);
+  color:#020617;font-weight:700;cursor:pointer
+}
+
+/* OVERLAYS */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(2,6,23,.94);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999
+}
+.overlay.hidden{display:none}
+
+.overlay-box{
+  text-align:center;
+  padding:48px 56px;
+  border-radius:22px;
+  border:4px solid #facc15;
+  background:linear-gradient(180deg,#020617,#0b1220);
+  box-shadow:0 0 80px rgba(250,204,21,.9);
+  max-height:85vh;
+  overflow-y:auto;
+}
+
+.overlay-title{font-size:34px;margin-bottom:18px}
+.overlay-sub{font-size:16px;margin-bottom:16px}
+
+.overlay-box button{
+  font-family:'Press Start 2P', monospace;
+  padding:12px 20px;font-size:11px;
+  border-radius:10px;border:none;
+  background:#22c55e;color:#020617;cursor:pointer
+}
+
+@keyframes shake{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  50%{transform:translateX(6px)}
+  100%{transform:translateX(0)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar"><img src="BRANCO_recortado.png" class="logo"></div>
+<div class="timer" id="timer">25:00</div>
+
+<div class="admin-controls">
+  <button onclick="startTimer()">▶</button>
+  <button onclick="pauseTimer()">⏸</button>
+  <button onclick="resetTimer()">⟲</button>
+  <button onclick="openAdmin()">⚙</button>
+</div>
+
+<div class="container">
+  <h1>🏙️ DATA CITY — BOSS FIGHT</h1>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- WIN -->
+<div id="winOverlay" class="overlay hidden">
+  <div class="overlay-box">
+    <div class="overlay-title">🏆 DATA CITY SALVA!</div>
+    <div class="overlay-sub">Yahoooo! 🎉</div>
+    <button onclick="closeOverlay()">CONTINUAR</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminOverlay" class="overlay hidden">
+  <div class="overlay-box" style="border-color:#7c3aed">
+    <div class="overlay-title" style="color:#c4b5fd">🛠 ADMIN PANEL</div>
+
+    <div class="overlay-sub">Tempo total (min)</div>
+    <input id="adminTime" type="number" min="1" value="25">
+
+    <div class="overlay-sub">Nº de equipas ativas</div>
+    <input id="adminTeams" type="number" min="1" max="6" value="6">
+
+    <div class="overlay-sub"><strong>Bosses</strong></div>
+    <div id="adminBosses"></div>
+
+    <div class="overlay-sub">Boss Final</div>
+    <input id="adminFinal" value="open data">
+
+    <br><br>
+    <button onclick="applyAdmin()">APLICAR & RESET</button>
+    <br><br>
+    <button onclick="closeAdmin()">FECHAR</button>
+  </div>
+</div>
+
+<script>
+
+
+const siren = new Audio("siren.mp3");
+siren.volume = 0.6;
+
+
+
+let lastSirenMinute = null;
+
+function handleTimeEvents(){
+  const minutesLeft = Math.ceil(remaining / 60);
+
+  // 🚨 Sirene a cada 5 minutos
+  if(minutesLeft % 5 === 0 && minutesLeft !== lastSirenMinute){
+    siren.play().catch(()=>{});
+    lastSirenMinute = minutesLeft;
+  }
+
+  // ⏱️ Contagem final
+  if(remaining <= 10 && remaining > 0){
+    speak(String(remaining), -1, "attack");
+  }
+}
+
+
+/* VOZES */
+function speak(text,bossIndex=-1,mood="neutral"){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US";
+  const V=[
+    {p:1.6,r:1.1},{p:1.9,r:.95},{p:.8,r:.8},
+    {p:1.4,r:1.2},{p:.9,r:.9},{p:1.2,r:.85}
+  ];
+  let p=1.2,r=1;
+  if(bossIndex>=0&&V[bossIndex]){p=V[bossIndex].p;r=V[bossIndex].r}
+  if(mood==="attack"){p+=.3;r+=.1}
+  if(mood==="fail"){p-=.2;r-=.15}
+  if(mood==="victory"){p+=.45;r+=.2}
+  if(mood==="final"){p-=.35;r-=.25}
+  u.pitch=Math.max(.5,Math.min(2,p));
+  u.rate=Math.max(.5,Math.min(1.4,r));
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+/* TIMER */
+let totalTime=25*60,remaining=totalTime,timerInterval=null;
+function renderTimer(){
+  timer.textContent=
+    String(Math.floor(remaining/60)).padStart(2,"0")+":"+
+    String(remaining%60).padStart(2,"0");
+}
+
+
+function startTimer(){
+  if(timerInterval) return;
+  speak("Ready! Here we gooo!", -1, "attack");
+
+  bgMusic.play().catch(()=>{});
+
+  timerInterval=setInterval(()=>{
+    remaining--;
+    renderTimer();
+    handleTimeEvents();
+    if(remaining<=0){
+      clearInterval(timerInterval);
+      bgMusic.pause();
+      speak("Thank you so much for playing my game!");
+    }
+  },1000);
+}
+
+function pauseTimer(){
+  clearInterval(timerInterval);
+  timerInterval=null;
+  bgMusic.pause();
+}
+
+function resetTimer(){
+  pauseTimer();
+  remaining=totalTime;
+  renderTimer();
+}
+
+
+
+/* AUDIO FX */
+let audioCtx;
+function audio(){audioCtx||=new (AudioContext||webkitAudioContext)()}
+function tone(f,d){audio();const o=audioCtx.createOscillator();o.frequency.value=f;o.connect(audioCtx.destination);o.start();setTimeout(()=>o.stop(),d)}
+function codemaster(){tone(520,100)}
+
+
+/* MÚSICA AMBIENTE */
+const bgMusic = new Audio("pressure-music.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.65;
+
+const BOSSES=[
+ {name:"Latency Koopa",icon:"🐢",hp:50,maxHp:100,answer:"42",free:false},
+ {name:"Bias Boo",icon:"👻",hp:50,maxHp:100,answer:"17",free:false},
+ {name:"Silo Thwomp",icon:"🧱",hp:50,maxHp:100,answer:"8",free:false},
+ {name:"Noise Piranha",icon:"🐡",hp:50,maxHp:100,answer:"3",free:false},
+ {name:"Overfit Bowser",icon:"🤖",hp:50,maxHp:100,answer:"99",free:false},
+ {name:"Dark Pattern Dragon",icon:"🐉",hp:50,maxHp:100,answer:"12",free:false}
+];
+
+let ACTIVE_TEAMS=BOSSES.length;
+const FINAL_BOSS={name:"City Core Overlord",icon:"🏙️",hp:300,maxHp:300,answer:"open data"};
+let finalRendered=false;
+
+function render(){
+  grid.innerHTML="";
+  BOSSES.slice(0,ACTIVE_TEAMS).forEach((b,i)=>{
+    grid.innerHTML+=`
+    <div class="boss" id="b${i}">
+      <div class="icon">${b.icon}</div>
+      <h2>${b.name}</h2>
+      <div class="hp"><span style="width:${b.hp}%"></span></div>
+      <input id="i${i}" placeholder="Resposta">
+      <button class="attack" onclick="attack(${i})">ATACAR</button>
+    </div>`;
+  });
+}
+
+function randomOtherBoss(ex){
+  const a=BOSSES.map((b,i)=>({b,i})).filter(x=>x.i!==ex&&x.b.hp>0);
+  if(!a.length)return null;
+  return a[Math.floor(Math.random()*a.length)];
+}
+
+function attack(i){
+  const b = BOSSES[i];
+  if(b.hp <= 0) return;
+
+  const card = document.getElementById("b"+i);
+  const inp  = document.getElementById("i"+i);
+  const hpBar = card.querySelector(".hp span");
+  const val  = inp.value.trim().toLowerCase();
+
+  // ✅ RESPOSTA CERTA
+  if(val === b.answer){
+    b.hp = 0;
+    hpBar.style.width = "0%";
+    card.classList.add("dead");
+    inp.disabled = true;
+
+    speak("Boom!", i, "victory");
+  }
+
+  // ❌ RESPOSTA ERRADA
+  else{
+    speak("Nope!", i, "fail");
+    codemaster();
+
+    // efeito visual de dano
+    card.classList.add("damage");
+    hpBar.classList.add("damage");
+    setTimeout(()=>{
+      card.classList.remove("damage");
+      hpBar.classList.remove("damage");
+    },400);
+
+    // perde energia
+    b.hp = Math.max(0, b.hp - 10);
+    hpBar.style.width = b.hp + "%";
+
+    // outro boss ganha energia (apenas se estiver vivo)
+    const other = randomOtherBoss(i);
+    if(other){
+      other.b.hp = Math.min(other.b.maxHp, other.b.hp + 10);
+      const otherBar = document.querySelector(`#b${other.i} .hp span`);
+      otherBar.style.width = other.b.hp + "%";
+      otherBar.classList.add("heal");
+      setTimeout(()=>otherBar.classList.remove("heal"),400);
+    }
+
+    // 💀 MORREU POR ERROS → FREE
+    if(b.hp === 0){
+      b.free = true;
+      inp.value = b.answer;
+      inp.disabled = true;
+      card.classList.add("dead");
+
+      card.insertAdjacentHTML(
+        "beforeend",
+        `<div class="free-badge">🆓 FREE</div>`
+      );
+
+      speak("Oki doki, this one is free!", i, "victory");
+    }
+  }
+
+  // verificar se todos resolvidos
+  if(BOSSES.slice(0,ACTIVE_TEAMS).every(x => x.hp === 0)){
+    renderFinalBoss();
+  }
+}
+
+function renderFinalBoss(){
+  if(finalRendered)return;
+  finalRendered=true;
+  grid.innerHTML+=`
+  <div class="boss final" id="final">
+    <div class="icon">${FINAL_BOSS.icon}</div>
+    <h2>${FINAL_BOSS.name}</h2>
+    <div class="hp"><span id="fhp"></span></div>
+    <input id="finput" placeholder="Resposta final">
+    <button class="attack" onclick="attackFinal()">ATACAR</button>
+  </div>`;
+  updateFinalHP();
+  speak("Oh no! Final boss detected!",0,"final");
+}
+
+function updateFinalHP(){
+  fhp.style.width=(FINAL_BOSS.hp/FINAL_BOSS.maxHp*100)+"%";
+}
+function attackFinal(){
+  if(finput.value.trim().toLowerCase()===FINAL_BOSS.answer){
+    FINAL_BOSS.hp=0;updateFinalHP();pauseTimer();showWinOverlay();
+  }else{
+    speak("No chance!",-1,"fail");codemaster();
+    FINAL_BOSS.hp=Math.max(0,FINAL_BOSS.hp-25);updateFinalHP();
+  }
+}
+
+function showWinOverlay(){
+  winOverlay.classList.remove("hidden");
+  speak("Yaaahoooo! Data City is Safe. You Rock",0,"victory");
+}
+function closeOverlay(){winOverlay.classList.add("hidden")}
+
+/* ADMIN */
+function openAdmin(){
+  adminOverlay.classList.remove("hidden");
+  adminTime.value=totalTime/60;
+  adminFinal.value=FINAL_BOSS.answer;
+  adminTeams.value=ACTIVE_TEAMS;
+  adminBosses.innerHTML="";
+  BOSSES.forEach((b,i)=>{
+    adminBosses.innerHTML+=`
+      <div class="overlay-sub">${b.icon} ${b.name}</div>
+      <input id="ab${i}" value="${b.answer}">`;
+  });
+}
+function closeAdmin(){adminOverlay.classList.add("hidden")}
+function applyAdmin(){
+  totalTime=parseInt(adminTime.value)*60;
+  remaining=totalTime;renderTimer();
+  ACTIVE_TEAMS=Math.max(1,Math.min(parseInt(adminTeams.value),BOSSES.length));
+  BOSSES.forEach((b,i)=>{
+    b.answer=document.getElementById("ab"+i).value.trim();
+    b.hp=50;b.free=false;
+  });
+  FINAL_BOSS.answer=adminFinal.value.trim();
+  FINAL_BOSS.hp=FINAL_BOSS.maxHp;
+  finalRendered=false;
+  render();closeAdmin();speak("Admin settings applied");
+}
+
+render();renderTimer();
+window.addEventListener("click",audio,{once:true});
+</script>
+
+</body>
+</html>
