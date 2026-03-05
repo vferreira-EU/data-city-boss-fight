@@ -95,6 +95,10 @@ h1{text-align:center;margin-bottom:28px}
 
 .icon{font-size:42px;height:48px;display:flex;align-items:center;justify-content:center}
 
+
+.hp span.heal{
+  background:linear-gradient(90deg,#38bdf8,#7dd3fc);
+}
 .hp{height:16px;background:#1f2937;border-radius:10px;overflow:hidden;margin:12px 0}
 .hp span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);transition:.3s}
 .hp span.damage{
@@ -329,10 +333,15 @@ function render(){
   });
 }
 
-function randomOtherBoss(ex){
-  const a=BOSSES.map((b,i)=>({b,i})).filter(x=>x.i!==ex&&x.b.hp>0);
-  if(!a.length)return null;
-  return a[Math.floor(Math.random()*a.length)];
+function randomOtherBoss(exclude){
+  const alive = BOSSES
+    .slice(0, ACTIVE_TEAMS)
+    .map((b,i)=>({b,i}))
+    .filter(x => x.i !== exclude && x.b.hp > 0);
+
+  if(alive.length === 0) return null;
+
+  return alive[Math.floor(Math.random()*alive.length)];
 }
 
 function attack(i){
@@ -382,7 +391,7 @@ function attack(i){
     }
 
     // 💀 MORREU POR ERROS → FREE
-    if(b.hp === 0){
+    if(b.hp <= 0){
       b.free = true;
       inp.value = b.answer;
       inp.disabled = true;
@@ -456,7 +465,7 @@ function applyAdmin(){
   ACTIVE_TEAMS=Math.max(1,Math.min(parseInt(adminTeams.value),BOSSES.length));
   BOSSES.forEach((b,i)=>{
     b.answer=document.getElementById("ab"+i).value.trim();
-    b.hp=50;b.free=false;
+    b.hp=b.maxHp/2;b.free=false;
   });
   FINAL_BOSS.answer=adminFinal.value.trim();
   FINAL_BOSS.hp=FINAL_BOSS.maxHp;
@@ -470,3 +479,4 @@ window.addEventListener("click",audio,{once:true});
 
 </body>
 </html>
+
